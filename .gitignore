@@ -1,2 +1,3 @@
 build/
-*.wasm
+html/*.wasm
+html/*.js

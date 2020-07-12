@@ -2,6 +2,7 @@ package pong
 
 import (
 	"github.com/hajimehoshi/ebiten"
+	"image/color"
 )
 
 // Position is a set of coordinates in 2-D plan
@@ -18,6 +19,7 @@ func GetCenter(screen *ebiten.Image) Position {
 	}
 }
 
+// GameState is an enum that represents all possible game states
 type GameState byte
 
 const (
@@ -27,4 +29,9 @@ const (
 	InterState
 	PauseState
 	GameOverState
+)
+
+var (
+	BgColor  = color.Black
+	ObjColor = color.RGBA{120, 226, 160, 255}
 )

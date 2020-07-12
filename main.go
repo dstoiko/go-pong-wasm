@@ -6,7 +6,6 @@ import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/inpututil"
-	"image/color"
 	"runtime"
 )
 
@@ -34,9 +33,6 @@ const (
 	windowHeight = 600
 )
 
-var bgColor = color.Black
-var objColor = color.RGBA{120, 226, 160, 255}
-
 // NewGame creates an initializes a new game
 func NewGame(aiMode bool) *Game {
 	g := &Game{}
@@ -61,7 +57,7 @@ func (g *Game) init(aiMode bool) {
 		Speed:  initPaddleSpeed,
 		Width:  pong.InitPaddleWidth,
 		Height: pong.InitPaddleHeight,
-		Color:  objColor,
+		Color:  pong.ObjColor,
 		Up:     ebiten.KeyW,
 		Down:   ebiten.KeyS,
 	}
@@ -73,7 +69,7 @@ func (g *Game) init(aiMode bool) {
 		Speed:  initPaddleSpeed,
 		Width:  pong.InitPaddleWidth,
 		Height: pong.InitPaddleHeight,
-		Color:  objColor,
+		Color:  pong.ObjColor,
 		Up:     ebiten.KeyO,
 		Down:   ebiten.KeyK,
 	}
@@ -82,7 +78,7 @@ func (g *Game) init(aiMode bool) {
 			X: float32(windowWidth / 2),
 			Y: float32(windowHeight / 2)},
 		Radius:    pong.InitBallRadius,
-		Color:     objColor,
+		Color:     pong.ObjColor,
 		XVelocity: initBallVelocity,
 		YVelocity: initBallVelocity,
 	}
@@ -206,10 +202,10 @@ func (g *Game) Update(screen *ebiten.Image) error {
 
 // Draw updates the game screen elements drawn
 func (g *Game) Draw(screen *ebiten.Image) error {
-	screen.Fill(bgColor)
+	screen.Fill(pong.BgColor)
 
-	pong.DrawCaption(g.state, objColor, screen)
-	pong.DrawBigText(g.state, objColor, screen)
+	pong.DrawCaption(g.state, pong.ObjColor, screen)
+	pong.DrawBigText(g.state, pong.ObjColor, screen)
 
 	if g.state != pong.ControlsState {
 		g.player1.Draw(screen, pong.ArcadeFont, false)

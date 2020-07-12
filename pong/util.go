@@ -17,3 +17,14 @@ func GetCenter(screen *ebiten.Image) Position {
 		Y: float32(h / 2),
 	}
 }
+
+type GameState byte
+
+const (
+	StartState GameState = iota
+	ControlsState
+	PlayState
+	InterState
+	PauseState
+	GameOverState
+)

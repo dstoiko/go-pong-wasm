@@ -3,34 +3,16 @@ package main
 import (
 	"fmt"
 	"github.com/dstoiko/go-pong-wasm/pong"
-	"github.com/golang/freetype/truetype"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/examples/resources/fonts"
 	"github.com/hajimehoshi/ebiten/inpututil"
-	"github.com/hajimehoshi/ebiten/text"
-	"golang.org/x/image/font"
 	"image/color"
-	"log"
 	"runtime"
 )
 
-type gameState byte
-
-const (
-	startState gameState = iota
-	controlsState
-	playState
-	interState
-	pauseState
-	gameOverState
-)
-
-var state = startState
-
 // Game is the structure of the game state
 type Game struct {
-	state    gameState
+	state    pong.GameState
 	aiMode   bool
 	ball     *pong.Ball
 	player1  *pong.Paddle
@@ -48,15 +30,8 @@ const (
 )
 
 const (
-	windowWidth   = 800
-	windowHeight  = 600
-	fontSize      = 30
-	smallFontSize = int(fontSize / 2)
-)
-
-var (
-	arcadeFont      font.Face
-	smallArcadeFont font.Face
+	windowWidth  = 800
+	windowHeight = 600
 )
 
 var bgColor = color.Black
@@ -70,7 +45,7 @@ func NewGame(aiMode bool) *Game {
 }
 
 func (g *Game) init(aiMode bool) {
-	g.state = startState
+	g.state = pong.StartState
 	g.aiMode = aiMode
 	if aiMode {
 		g.maxScore = 100
@@ -116,29 +91,15 @@ func (g *Game) init(aiMode bool) {
 	g.player1.Img, _ = ebiten.NewImage(g.player1.Width, g.player1.Height, ebiten.FilterDefault)
 	g.player2.Img, _ = ebiten.NewImage(g.player2.Width, g.player2.Height, ebiten.FilterDefault)
 
-	tt, err := truetype.Parse(fonts.ArcadeN_ttf)
-	if err != nil {
-		log.Fatal(err)
-	}
-	var dpi float64 = 72
-	arcadeFont = truetype.NewFace(tt, &truetype.Options{
-		Size:    float64(fontSize),
-		DPI:     dpi,
-		Hinting: font.HintingFull,
-	})
-	smallArcadeFont = truetype.NewFace(tt, &truetype.Options{
-		Size:    float64(smallFontSize),
-		DPI:     dpi,
-		Hinting: font.HintingFull,
-	})
+	pong.InitFonts()
 }
 
-func (g *Game) reset(screen *ebiten.Image, state gameState) {
+func (g *Game) reset(screen *ebiten.Image, state pong.GameState) {
 	w, _ := screen.Size()
 	g.state = state
 	g.rally = 0
 	g.level = 0
-	if state == startState {
+	if state == pong.StartState {
 		g.player1.Score = 0
 		g.player2.Score = 0
 	}
@@ -154,26 +115,26 @@ func (g *Game) reset(screen *ebiten.Image, state gameState) {
 // Update updates the game state
 func (g *Game) Update(screen *ebiten.Image) error {
 	switch g.state {
-	case startState:
+	case pong.StartState:
 		if inpututil.IsKeyJustPressed(ebiten.KeyC) {
-			g.state = controlsState
+			g.state = pong.ControlsState
 		} else if inpututil.IsKeyJustPressed(ebiten.KeyA) {
 			g.aiMode = true
-			g.state = playState
+			g.state = pong.PlayState
 		} else if inpututil.IsKeyJustPressed(ebiten.KeyV) {
 			g.aiMode = false
-			g.state = playState
+			g.state = pong.PlayState
 		}
 
-	case controlsState:
+	case pong.ControlsState:
 		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-			g.state = startState
+			g.state = pong.StartState
 		}
-	case playState:
+	case pong.PlayState:
 		w, _ := screen.Size()
 
 		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-			g.state = pauseState
+			g.state = pong.PauseState
 			break
 		}
 
@@ -208,33 +169,33 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		if g.ball.X < 0 {
 			g.player2.Score++
 			if g.aiMode {
-				g.state = gameOverState
+				g.state = pong.GameOverState
 				break
 			}
-			g.reset(screen, interState)
+			g.reset(screen, pong.InterState)
 		} else if g.ball.X > float32(w) {
 			g.player1.Score++
 			if g.aiMode {
-				g.state = gameOverState
+				g.state = pong.GameOverState
 				break
 			}
-			g.reset(screen, interState)
+			g.reset(screen, pong.InterState)
 		}
 
 		if g.player1.Score == g.maxScore || g.player2.Score == g.maxScore {
-			g.state = gameOverState
+			g.state = pong.GameOverState
 		}
 
-	case interState, pauseState:
+	case pong.InterState, pong.PauseState:
 		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-			g.state = playState
+			g.state = pong.PlayState
 		} else if inpututil.IsKeyJustPressed(ebiten.KeyR) {
-			g.reset(screen, startState)
+			g.reset(screen, pong.StartState)
 		}
 
-	case gameOverState:
+	case pong.GameOverState:
 		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-			g.reset(screen, startState)
+			g.reset(screen, pong.StartState)
 		}
 	}
 
@@ -243,90 +204,16 @@ func (g *Game) Update(screen *ebiten.Image) error {
 	return nil
 }
 
-func (g *Game) drawCaption(screen *ebiten.Image) {
-	w, h := screen.Size()
-	msg := []string{}
-	switch g.state {
-	case playState, interState, pauseState:
-		msg = append(msg, "Press SPACE key to take a break (not too long though)")
-	case controlsState:
-		msg = append(msg, "Press SPACE to go back to main menu")
-	}
-	for i, l := range msg {
-		x := (w - len(l)*smallFontSize) / 2
-		text.Draw(screen, l, smallArcadeFont, x, h-4+(i-2)*smallFontSize, objColor)
-	}
-}
-
-func (g *Game) drawBigText(screen *ebiten.Image) {
-	w, _ := screen.Size()
-	var texts []string
-	switch g.state {
-	case startState:
-		texts = []string{
-			"",
-			"PONG",
-			"",
-			"C -> CONTROLS",
-			"V -> VS GAME",
-			"A -> AI GAME",
-		}
-	case controlsState:
-		texts = []string{
-			"",
-			"PLAYER 1:",
-			"W -> UP",
-			"S -> DOWN",
-			"",
-			"PLAYER 2:",
-			"O -> UP",
-			"K -> DOWN",
-		}
-	case interState:
-		texts = []string{
-			"",
-			"",
-			"SPACE -> RESUME",
-			"R     -> RESET",
-		}
-	case pauseState:
-		texts = []string{
-			"",
-			"PAUSED",
-			"",
-			"SPACE -> RESUME",
-			"R     -> RESET",
-		}
-	case gameOverState:
-		texts = []string{
-			"",
-			"GAME OVER!",
-		}
-		if g.player1.Score == g.maxScore {
-			texts = append(texts, "PLAYER 1 WINS")
-		} else if g.player2.Score == g.maxScore && !g.aiMode {
-			texts = append(texts, "PLAYER 2 WINS")
-		} else {
-			texts = append(texts, "AI WINS")
-		}
-		texts = append(texts, "SPACE -> RESET")
-	}
-	for i, l := range texts {
-		x := (w - len(l)*fontSize) / 2
-		text.Draw(screen, l, arcadeFont, x, (i+4)*fontSize, objColor)
-	}
-}
-
 // Draw updates the game screen elements drawn
 func (g *Game) Draw(screen *ebiten.Image) error {
 	screen.Fill(bgColor)
 
-	g.drawCaption(screen)
-	g.drawBigText(screen)
+	pong.DrawCaption(g.state, objColor, screen)
+	pong.DrawBigText(g.state, objColor, screen)
 
-	if g.state != controlsState {
-		g.player1.Draw(screen, arcadeFont, false)
-		g.player2.Draw(screen, arcadeFont, g.aiMode)
+	if g.state != pong.ControlsState {
+		g.player1.Draw(screen, pong.ArcadeFont, false)
+		g.player2.Draw(screen, pong.ArcadeFont, g.aiMode)
 		g.ball.Draw(screen)
 	}
 

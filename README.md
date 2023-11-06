@@ -1,6 +1,6 @@
 # Pong in Go
 
-This is a pet project to try out WebAssembly with Go (golang) in a fun way. The game should be available [on my blog](https://dstoiko.github.io/posts/go-pong-wasm/). You can also build it and try locally on desktop.
+This is a pet project to try out WebAssembly with Go (golang) in a fun way. The game should be available [on my blog](https://dstoiko.github.io/blog/posts/go-pong-wasm/). You can also build it and try locally on desktop.
 
 ![Demo](demo-v1.gif)
 
